@@ -6,10 +6,10 @@ import (
 )
 
 var (
-	ErrEmptyOrder      = errors.New("cannot pay empty order")
-	ErrAlreadyPaid     = errors.New("order is already paid")
+	ErrEmptyOrder       = errors.New("cannot pay empty order")
+	ErrAlreadyPaid      = errors.New("order is already paid")
 	ErrCannotModifyPaid = errors.New("cannot modify paid order")
-	ErrInvalidTotal    = errors.New("total does not match sum of lines")
+	ErrInvalidTotal     = errors.New("total does not match sum of lines")
 )
 
 type OrderID string
@@ -39,6 +39,14 @@ func (m Money) Currency() string {
 }
 
 func (m Money) Add(other Money) (Money, error) {
+	if m.currency == "" && m.amount == 0 {
+		return NewMoney(other.amount, other.currency), nil
+	}
+
+	if other.currency == "" && other.amount == 0 {
+		return NewMoney(m.amount, m.currency), nil
+	}
+
 	if m.currency != other.currency {
 		return Money{}, fmt.Errorf("currency mismatch: %s != %s", m.currency, other.currency)
 	}
@@ -60,7 +68,7 @@ func (l OrderLine) Total() Money {
 }
 
 type Order struct {
-	id     OrderID     
+	id     OrderID
 	status OrderStatus
 	lines  []OrderLine
 	total  Money
@@ -71,13 +79,13 @@ func NewOrder(id OrderID, lines []OrderLine) (*Order, error) {
 		return nil, ErrEmptyOrder
 	}
 
-	var total Money
-	for _, line := range lines {
-		lineTotal, err := total.Add(line.Total())
+	total := lines[0].Total()
+	for i := 1; i < len(lines); i++ {
+		var err error
+		total, err = total.Add(lines[i].Total())
 		if err != nil {
 			return nil, err
 		}
-		total = lineTotal
 	}
 
 	order := &Order{
@@ -86,11 +94,11 @@ func NewOrder(id OrderID, lines []OrderLine) (*Order, error) {
 		lines:  lines,
 		total:  total,
 	}
-	
+
 	if err := order.ValidateTotal(); err != nil {
 		return nil, err
 	}
-	
+
 	return order, nil
 }
 

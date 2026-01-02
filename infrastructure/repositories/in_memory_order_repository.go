@@ -2,10 +2,13 @@ package repositories
 
 import (
 	"context"
+	"errors"
 	"sync"
 
 	"laba_7/domain"
 )
+
+var ErrOrderNotFound = errors.New("order not found")
 
 type InMemoryOrderRepository struct {
 	orders map[domain.OrderID]*domain.Order
@@ -24,42 +27,16 @@ func (r *InMemoryOrderRepository) GetByID(ctx context.Context, id domain.OrderID
 	r.mu.RUnlock()
 
 	if !exists {
-		lines := []domain.OrderLine{
-			{
-				ProductID: "prod1",
-				Quantity:  2,
-				Price:     domain.NewMoney(5000, "RUB"),
-			},
-			{
-				ProductID: "prod2",
-				Quantity:  1,
-				Price:     domain.NewMoney(10000, "RUB"),
-			},
-		}
-		order, err := domain.NewOrder(id, lines)
-		if err != nil {
-			return nil, err
-		}
-		return order, nil
+		return nil, ErrOrderNotFound
 	}
 
-	lines := make([]domain.OrderLine, len(order.Lines()))
-	copy(lines, order.Lines())
-	newOrder, err := domain.NewOrder(id, lines)
-	if err != nil {
-		return nil, err
-	}
-	return newOrder, nil
+	return order, nil
 }
 
 func (r *InMemoryOrderRepository) Save(ctx context.Context, order *domain.Order) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	
-	if err := order.ValidateTotal(); err != nil {
-		return err
-	}
-	
+
 	r.orders[order.ID()] = order
 	return nil
 }
