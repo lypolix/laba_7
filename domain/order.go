@@ -87,7 +87,7 @@ func NewOrder(id OrderID, lines []OrderLine) (*Order, error) {
 		total:  total,
 	}
 	
-	if err := order.validateTotal(); err != nil {
+	if err := order.ValidateTotal(); err != nil {
 		return nil, err
 	}
 	
@@ -136,7 +136,7 @@ func (o *Order) AddLine(line OrderLine) error {
 	return nil
 }
 
-func (o *Order) validateTotal() error {
+func (o *Order) ValidateTotal() error {
 	var sum Money
 	for _, line := range o.lines {
 		lineTotal, err := sum.Add(line.Total())
